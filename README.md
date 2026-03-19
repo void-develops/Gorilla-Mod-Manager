@@ -9,3 +9,8 @@
 
 # GorillaModManager
 A open source mod manager for gorilla tag where you can put any mod you want with verification!
+
+# Reasons why to use
+This will be updated until i lose motivation,
+It is completly open source and you can upload your own mods through discord,
+All mods are verified so they are virus-free!
