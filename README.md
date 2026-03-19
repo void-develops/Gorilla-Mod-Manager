@@ -1,7 +1,7 @@
 <h1 align="center">🦍 Gorilla Mod Manager</h1>
 
 <p align="center">
-  An open-source mod manager for Gorilla Tag with built-in verification.
+  An open-source mod manager for Gorilla Tag.
 </p>
 
 <p align="center">
