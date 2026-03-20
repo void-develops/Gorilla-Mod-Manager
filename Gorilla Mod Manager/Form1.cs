@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -16,6 +17,28 @@ namespace Gorilla_Mod_Manager
             this.Load += Form1_Load;
         }
 
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            CenterControls();
+        }
+
+        private void CenterControls()
+        {
+            int cx = this.ClientSize.Width / 2;
+
+            gorillamodmanager.Left = cx - gorillamodmanager.Width / 2;
+
+            undertext.Left = cx - undertext.Width / 2;
+
+            FilePath.Left = cx - (FilePath.Width + 6 + opengamepath.Width) / 2;
+            opengamepath.Left = FilePath.Left + FilePath.Width + 6;
+
+            Open.Left = cx - Open.Width / 2;
+
+            Github.Left = cx - Github.Width / 2;
+        }
+
         private void Form1_Load(object sender, EventArgs e)
         {
             DetectGorillaTag();
@@ -29,6 +52,7 @@ namespace Gorilla_Mod_Manager
             MainApp app = new MainApp(GtagDirectory);
             app.StartPosition = FormStartPosition.Manual;
             app.Location = this.Location;
+            app.Size = this.Size;
             app.FormBorderStyle = FormBorderStyle.None;
             app.Show();
         }
@@ -163,6 +187,10 @@ namespace Gorilla_Mod_Manager
         private void Form1_Load_1(object sender, EventArgs e)
         {
 
+        }
+
+        private void Form1_Resize(object sender, EventArgs e)
+        {
         }
     }
 }

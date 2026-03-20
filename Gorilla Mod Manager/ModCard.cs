@@ -9,55 +9,39 @@ using System.Windows.Forms;
 
 namespace Gorilla_Mod_Manager
 {
-    public class ModCard : Guna2Panel
+    public partial class ModCard : UserControl
     {
-        private PictureBox iconBox;
-        private Label nameLabel;
-        private Label descLabel;
-        private Label authorLabel;
-        private Guna2Button downloadButton;
-        private PictureBox pinPicture;
-        private Label statusBadge;
-        private Label upvoteBadge;
-
         private SbModData mod;
         private string gtagDir;
 
-        public string ModName
-        {
-            get => nameLabel.Text;
-            set => nameLabel.Text = value;
-        }
+        private string statusText = "";
+        private Color statusFg = Color.FromArgb(160, 160, 160);
+        private Color statusBg = Color.FromArgb(40, 40, 40);
+        private string upvoteText = "▲ 0";
+        private Image pinImage = null;
 
-        public string ModDescription
-        {
-            get => descLabel.Text;
-            set => descLabel.Text = value;
-        }
-
-        public string IconUrl
-        {
-            get => iconBox.ImageLocation;
-            set => iconBox.ImageLocation = value;
-        }
-
+        public string ModName { get => nameLabel.Text; set => nameLabel.Text = value; }
+        public string ModDescription { get => descLabel.Text; set => descLabel.Text = value; }
+        public string IconUrl { get => iconBox.ImageLocation; set => iconBox.ImageLocation = value; }
         public string DownloadUrl { get; set; }
 
-        private bool pinned;
+        private bool _pinned;
         public bool Pinned
         {
-            get => pinned;
-            set { pinned = value; pinPicture.Visible = pinned; }
+            get => _pinned;
+            set { _pinned = value; Invalidate(); }
         }
 
         public event EventHandler DownloadClicked;
 
         public ModCard()
         {
-            Size = new Size(200, 270);
-            BackColor = Color.FromArgb(30, 30, 30);
-            BorderRadius = 8;
-            Build();
+            InitializeComponent();
+            DoubleBuffered = true;
+            statusBadge.Paint += StatusBadgePaint;
+            upvoteBadge.Paint += UpvoteBadgePaint;
+            downloadButton.Click += LegacyDownload;
+            Margin = new Padding(4);
         }
 
         public ModCard(SbModData modData, string gorillaTagDirectory) : this()
@@ -68,22 +52,31 @@ namespace Gorilla_Mod_Manager
             ModName = modData.Name;
             ModDescription = modData.Description;
             authorLabel.Text = "@" + modData.Author;
+            upvoteText = "▲ " + modData.Upvotes;
 
-            string badgeText = modData.IsFeatured ? "Featured" : modData.IsVerified ? "Verified" : "Unverified";
-            Color badgeFg = modData.IsFeatured ? Color.FromArgb(255, 220, 60)
-                             : modData.IsVerified ? Color.FromArgb(185, 157, 255)
-                                                    : Color.FromArgb(248, 113, 113);
-            Color badgeBg = modData.IsFeatured ? Color.FromArgb(80, 60, 0)
-                             : modData.IsVerified ? Color.FromArgb(40, 20, 90)
-                                                    : Color.FromArgb(70, 20, 30);
+            if (modData.IsFeatured)
+            {
+                statusText = "Featured";
+                statusFg = Color.FromArgb(255, 208, 56);
+                statusBg = Color.FromArgb(50, 38, 0);
+            }
+            else if (modData.IsVerified)
+            {
+                statusText = "Verified";
+                statusFg = Color.FromArgb(140, 100, 255);
+                statusBg = Color.FromArgb(35, 18, 70);
+            }
+            else
+            {
+                statusText = "Unverified";
+                statusFg = Color.FromArgb(130, 130, 130);
+                statusBg = Color.FromArgb(38, 38, 38);
+            }
 
-            statusBadge.Text = badgeText;
-            statusBadge.ForeColor = badgeFg;
-            statusBadge.BackColor = badgeBg;
             statusBadge.Visible = true;
-
-            upvoteBadge.Text = "▲ " + modData.Upvotes;
             upvoteBadge.Visible = true;
+            statusBadge.Invalidate();
+            upvoteBadge.Invalidate();
 
             downloadButton.Click -= LegacyDownload;
             downloadButton.Click += async (s, e) => await InstallFromSb();
@@ -92,141 +85,106 @@ namespace Gorilla_Mod_Manager
                 _ = LoadImageAsync(modData.ImageUrl);
         }
 
-        private void Build()
+        private void StatusBadgePaint(object sender, PaintEventArgs e)
         {
-            iconBox = new PictureBox
-            {
-                Size = new Size(180, 110),
-                Location = new Point(10, 10),
-                SizeMode = PictureBoxSizeMode.StretchImage,
-                BackColor = Color.FromArgb(20, 20, 20)
-            };
-            Controls.Add(iconBox);
-
-            statusBadge = new Label
-            {
-                AutoSize = false,
-                Size = new Size(68, 16),
-                Location = new Point(Width - 72, 4),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 6.5F, FontStyle.Bold),
-                ForeColor = Color.White,
-                BackColor = Color.FromArgb(60, 40, 120),
-                Visible = false
-            };
-            Controls.Add(statusBadge);
-            statusBadge.Paint += BadgePaint;
-
-            upvoteBadge = new Label
-            {
-                AutoSize = false,
-                Size = new Size(48, 16),
-                Location = new Point(Width - 52, 22),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Segoe UI", 6.5F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(200, 180, 255),
-                BackColor = Color.FromArgb(50, 25, 100),
-                Visible = false
-            };
-            Controls.Add(upvoteBadge);
-            upvoteBadge.Paint += BadgePaint;
-
-            nameLabel = new Label
-            {
-                Font = new Font("Poppins", 9, FontStyle.Bold),
-                ForeColor = Color.White,
-                Location = new Point(10, 128),
-                Size = new Size(180, 22),
-                AutoEllipsis = true
-            };
-            Controls.Add(nameLabel);
-
-            authorLabel = new Label
-            {
-                Font = new Font("Segoe UI", 7F),
-                ForeColor = Color.FromArgb(140, 120, 180),
-                Location = new Point(10, 150),
-                Size = new Size(180, 16),
-                AutoEllipsis = true
-            };
-            Controls.Add(authorLabel);
-
-            descLabel = new Label
-            {
-                Font = new Font("Poppins", 7.5F),
-                ForeColor = Color.LightGray,
-                Location = new Point(10, 168),
-                Size = new Size(180, 34),
-                AutoEllipsis = true
-            };
-            Controls.Add(descLabel);
-
-            downloadButton = new Guna2Button
-            {
-                Text = "Install",
-                Size = new Size(180, 28),
-                Location = new Point(10, 206),
-                BorderRadius = 6,
-                FillColor = Color.FromArgb(111, 69, 240),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold),
-                Animated = true,
-                HoverState = { FillColor = Color.FromArgb(90, 50, 210) }
-            };
-            downloadButton.Click += LegacyDownload;
-            Controls.Add(downloadButton);
-
-            pinPicture = new PictureBox
-            {
-                Size = new Size(24, 24),
-                SizeMode = PictureBoxSizeMode.StretchImage,
-                BackColor = Color.Transparent,
-                Location = new Point(Width - 26, 2),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                Visible = false
-            };
-            Controls.Add(pinPicture);
-            pinPicture.BringToFront();
-
-            SizeChanged += (s, e) => RepositionBadges();
-            RepositionBadges();
-
-            statusBadge.BringToFront();
-            upvoteBadge.BringToFront();
-        }
-
-        private void RepositionBadges()
-        {
-            statusBadge.Location = new Point(Width - statusBadge.Width - 4, 4);
-            upvoteBadge.Location = new Point(Width - upvoteBadge.Width - 4, statusBadge.Bottom + 3);
-        }
-
-        private void BadgePaint(object sender, PaintEventArgs e)
-        {
-            var lbl = (Label)sender;
             var g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
-            var rc = lbl.ClientRectangle;
-            rc.Width--; rc.Height--;
+            var rc = new Rectangle(0, 0, statusBadge.Width - 1, statusBadge.Height - 1);
             int r = rc.Height / 2;
-            using (var path = RoundedRect(rc, r))
-            using (var fill = new SolidBrush(lbl.BackColor))
-                g.FillPath(fill, path);
-            using (var brush = new SolidBrush(lbl.ForeColor))
-                g.DrawString(lbl.Text, lbl.Font, brush,
-                    new RectangleF(0, 0, lbl.Width, lbl.Height),
-                    new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center });
+            using (var path = Pill(rc, r))
+            {
+                using (var fill = new SolidBrush(statusBg))
+                    g.FillPath(fill, path);
+                using (var pen = new Pen(statusFg, 1f))
+                    g.DrawPath(pen, path);
+            }
+            using (var brush = new SolidBrush(statusFg))
+            using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                g.DrawString(statusText, new Font("Segoe UI", 6.5F, FontStyle.Bold), brush,
+                    new RectangleF(0, 0, statusBadge.Width, statusBadge.Height), fmt);
         }
 
-        private void LegacyDownload(object sender, EventArgs e) => DownloadClicked?.Invoke(this, EventArgs.Empty);
+        private void UpvoteBadgePaint(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var rc = new Rectangle(0, 0, upvoteBadge.Width - 1, upvoteBadge.Height - 1);
+            int r = rc.Height / 2;
+            using (var path = Pill(rc, r))
+            {
+                using (var fill = new SolidBrush(Color.FromArgb(35, 18, 70)))
+                    g.FillPath(fill, path);
+                using (var pen = new Pen(Color.FromArgb(111, 69, 240), 1f))
+                    g.DrawPath(pen, path);
+            }
+            using (var brush = new SolidBrush(Color.FromArgb(185, 157, 255)))
+            using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                g.DrawString(upvoteText, new Font("Segoe UI", 6.5F, FontStyle.Bold), brush,
+                    new RectangleF(0, 0, upvoteBadge.Width, upvoteBadge.Height), fmt);
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var rc = new Rectangle(0, 0, Width - 1, Height - 1);
+            using (var path = Pill(rc, 8))
+            {
+                using (var bg = new SolidBrush(Color.FromArgb(30, 30, 30)))
+                    g.FillPath(bg, path);
+                Region = new Region(path);
+            }
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var rc = new Rectangle(0, 0, Width - 1, Height - 1);
+            using (var path = Pill(rc, 8))
+            using (var pen = new Pen(Color.FromArgb(55, 55, 55), 1f))
+                g.DrawPath(pen, path);
+
+            if (_pinned && pinImage != null)
+            {
+                var s = g.Save();
+                int cx = pinPicture.Left + pinPicture.Width / 2;
+                int cy = pinPicture.Top + pinPicture.Height / 2;
+                g.TranslateTransform(cx, cy);
+                g.RotateTransform(-90);
+                g.DrawImage(pinImage, -pinPicture.Width / 2, -pinPicture.Height / 2,
+                    pinPicture.Width, pinPicture.Height);
+                g.Restore(s);
+            }
+        }
+
+        private void LegacyDownload(object sender, EventArgs e) =>
+            DownloadClicked?.Invoke(this, EventArgs.Empty);
 
         public void UpdatePin(string pinUrl)
         {
-            if (!Pinned) { pinPicture.Visible = false; return; }
-            pinPicture.ImageLocation = pinUrl;
-            pinPicture.Visible = true;
+            if (!_pinned) { pinImage = null; Invalidate(); return; }
+            _ = LoadPinAsync(pinUrl);
+        }
+
+        private async Task LoadPinAsync(string url)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "GorillaModManager");
+                    var bytes = await client.GetByteArrayAsync(url);
+                    using (var ms = new MemoryStream(bytes))
+                    {
+                        var img = Image.FromStream(ms);
+                        if (IsHandleCreated) Invoke((Action)(() => { pinImage = img; Invalidate(); }));
+                        else pinImage = img;
+                    }
+                }
+            }
+            catch { }
         }
 
         private async Task LoadImageAsync(string url)
@@ -253,18 +211,13 @@ namespace Gorilla_Mod_Manager
         private async Task InstallFromSb()
         {
             if (mod == null) return;
-
             if (string.IsNullOrEmpty(gtagDir) || !Directory.Exists(gtagDir))
-            {
-                SetBtn("No GT folder!", Color.FromArgb(248, 113, 113));
-                return;
-            }
+            { SetBtn("No GT folder!", Color.FromArgb(80, 20, 20)); return; }
 
             string dlUrl = mod.RepoUrl.TrimEnd('/') + "/releases/latest/download/" + mod.DllName;
             string dest = Path.Combine(gtagDir, "BepInEx", "plugins", mod.DllName);
             Directory.CreateDirectory(Path.GetDirectoryName(dest));
-
-            SetBtn("0%", Color.FromArgb(60, 40, 120), false);
+            SetBtn("0%", Color.FromArgb(33, 33, 33), false);
 
             try
             {
@@ -273,14 +226,10 @@ namespace Gorilla_Mod_Manager
                     client.DefaultRequestHeaders.Add("User-Agent", "GorillaModManager");
                     var response = await client.GetAsync(dlUrl, HttpCompletionOption.ResponseHeadersRead);
                     if (!response.IsSuccessStatusCode)
-                    {
-                        SetBtn("Failed " + (int)response.StatusCode, Color.FromArgb(248, 113, 113));
-                        return;
-                    }
+                    { SetBtn("Failed " + (int)response.StatusCode, Color.FromArgb(80, 20, 20)); return; }
 
                     long total = response.Content.Headers.ContentLength ?? -1;
                     long received = 0;
-
                     using (var stream = await response.Content.ReadAsStreamAsync())
                     using (var file = File.Create(dest))
                     {
@@ -290,56 +239,43 @@ namespace Gorilla_Mod_Manager
                         {
                             await file.WriteAsync(buf, 0, read);
                             received += read;
-                            if (total > 0)
-                            {
-                                int pct = (int)(received * 100 / total);
-                                SetBtn(pct + "%", Color.FromArgb(60, 40, 120), false);
-                            }
+                            if (total > 0) SetBtn((int)(received * 100 / total) + "%", Color.FromArgb(33, 33, 33), false);
                         }
                     }
                 }
-
-                SetBtn("Installed ✓", Color.FromArgb(35, 110, 55));
+                SetBtn("Installed ✓", Color.FromArgb(20, 80, 20));
             }
             catch (Exception ex)
             {
-                SetBtn("Error: " + ex.Message, Color.FromArgb(248, 113, 113));
+                SetBtn("Error!", Color.FromArgb(80, 20, 20));
                 await Task.Delay(3000);
+                _ = ex;
                 ResetBtn();
             }
         }
 
         private void SetBtn(string text, Color fill, bool enabled = true)
         {
-            if (downloadButton.IsHandleCreated)
-                downloadButton.Invoke((Action)(() =>
-                {
-                    downloadButton.Text = text;
-                    downloadButton.FillColor = fill;
-                    downloadButton.Enabled = enabled;
-                }));
-            else
-            {
-                downloadButton.Text = text;
-                downloadButton.FillColor = fill;
-                downloadButton.Enabled = enabled;
-            }
+            void Do() { downloadButton.Text = text; downloadButton.FillColor = fill; downloadButton.Enabled = enabled; }
+            if (downloadButton.IsHandleCreated) downloadButton.Invoke((Action)Do); else Do();
         }
 
-        private void ResetBtn()
+        private void ResetBtn() => SetBtn("Install", Color.FromArgb(60, 30, 140));
+
+        private static GraphicsPath Pill(Rectangle r, int radius)
         {
-            SetBtn("Install", Color.FromArgb(111, 69, 240));
+            var p = new GraphicsPath();
+            p.AddArc(r.X, r.Y, radius * 2, radius * 2, 180, 90);
+            p.AddArc(r.Right - radius * 2, r.Y, radius * 2, radius * 2, 270, 90);
+            p.AddArc(r.Right - radius * 2, r.Bottom - radius * 2, radius * 2, radius * 2, 0, 90);
+            p.AddArc(r.X, r.Bottom - radius * 2, radius * 2, radius * 2, 90, 90);
+            p.CloseFigure();
+            return p;
         }
 
-        private static GraphicsPath RoundedRect(Rectangle r, int radius)
+        private void downloadButton_Click(object sender, EventArgs e)
         {
-            var path = new GraphicsPath();
-            path.AddArc(r.X, r.Y, radius * 2, radius * 2, 180, 90);
-            path.AddArc(r.Right - radius * 2, r.Y, radius * 2, radius * 2, 270, 90);
-            path.AddArc(r.Right - radius * 2, r.Bottom - radius * 2, radius * 2, radius * 2, 0, 90);
-            path.AddArc(r.X, r.Bottom - radius * 2, radius * 2, radius * 2, 90, 90);
-            path.CloseFigure();
-            return path;
+
         }
     }
 }
