@@ -1,4 +1,4 @@
-<h1 align="center">🦍 Gorilla Mod Manager</h1>
+<h1 align="center">Gorilla Mod Manager</h1>
 
 <p align="center">
   An open-source mod manager for Gorilla Tag.
@@ -24,17 +24,17 @@
 
 ---
 
-## ✨ Features
+## Features
 
-- 📦 Easy mod installation  
-- 🔒 Verified mods (virus-free)  
-- 🧩 Support for custom mods  
-- ⚡ Fast and lightweight  
-- 🎨 Clean modern UI  
+-  Easy mod installation  
+-  Verified mods (virus-free)  
+-  Support for custom mods  
+-  Fast and lightweight  
+-  Clean modern UI  
 
 ---
 
-## 📸 Preview
+##  Preview
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/48532648-0908-4835-acbf-37b853da9962" width="45%" />
@@ -43,34 +43,34 @@
 
 ---
 
-## 🚀 Download
+##  Download
 
-👉 **Get the latest version here:**  
+ **Get the latest version here:**  
 https://github.com/void-develops/Gorilla-Mod-Manager/releases/latest
 
 ---
 
-## 💬 Community
+##  Community
 
 Join the Discord to upload mods or get help:
 
-👉 https://discord.gg/AV4psReqQm
+ https://discord.gg/AV4psReqQm
 
 ---
 
-## 🧠 About
+##  About
 
 Gorilla Mod Manager is an open-source project designed to make modding Gorilla Tag simple and safe.  
 All mods are reviewed and verified before being available.
 
 ---
 
-## ⚠️ Disclaimer
+##  Disclaimer
 
 This project is not affiliated with Gorilla Tag or its developers.
 
 ---
 
-## ⭐ Support
+##  Support
 
-If you like the project, consider starring the repo ⭐
+If you like the project, consider starring the repo 
