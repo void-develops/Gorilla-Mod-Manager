@@ -23,6 +23,9 @@
 </p>
 
 ---
+## Dependencies
+- .NET 6
+---
 
 ## Features
 
