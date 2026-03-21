@@ -818,7 +818,6 @@ namespace Gorilla_Mod_Manager
                 BackColor = Color.Transparent
             };
 
-            // Game Path
             panel.Controls.Add(MakeLabel("Game Path", y));
             settingsPathBox = new Guna.UI2.WinForms.Guna2TextBox
             {
@@ -881,7 +880,6 @@ namespace Gorilla_Mod_Manager
             panel.Controls.Add(openFolderBtn);
             y += rowH;
 
-            // Theme
             panel.Controls.Add(MakeLabel("Theme", y));
             themeDropdown = new ComboBox
             {
@@ -906,7 +904,6 @@ namespace Gorilla_Mod_Manager
             panel.Controls.Add(themeDropdown);
             y += rowH;
 
-            // Accent Color
             panel.Controls.Add(MakeLabel("Accent Color", y));
             var presets = new[]
             {
@@ -938,7 +935,6 @@ namespace Gorilla_Mod_Manager
             }
             y += rowH;
 
-            // Custom Color
             panel.Controls.Add(MakeLabel("Custom Color", y));
             var customColorBtn = new Guna.UI2.WinForms.Guna2Button
             {
@@ -966,7 +962,6 @@ namespace Gorilla_Mod_Manager
             panel.Controls.Add(accentPreviewPanel);
             y += rowH;
 
-            // Separator
             panel.Controls.Add(new Panel
             {
                 Location = new Point(labelX, y),
@@ -975,7 +970,6 @@ namespace Gorilla_Mod_Manager
             });
             y += 20;
 
-            // Save
             var saveBtn = new Guna.UI2.WinForms.Guna2Button
             {
                 Text = "Save Settings",
