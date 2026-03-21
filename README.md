@@ -24,7 +24,7 @@
 
 ---
 ## Dependencies
-- .NET Framework 4.8 (https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48)
+- .NET Framework 6
 ---
 
 ## Features
