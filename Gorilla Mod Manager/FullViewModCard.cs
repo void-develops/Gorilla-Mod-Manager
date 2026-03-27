@@ -9,7 +9,7 @@ using System.Windows.Forms;
 
 namespace Gorilla_Mod_Manager
 {
-    public partial class ModCard : UserControl
+    public partial class FullViewModCard : UserControl
     {
         private SbModData mod;
         private string gtagDir;
@@ -34,7 +34,7 @@ namespace Gorilla_Mod_Manager
 
         public event EventHandler DownloadClicked;
 
-        public ModCard()
+        public FullViewModCard()
         {
             InitializeComponent();
             DoubleBuffered = true;
@@ -44,7 +44,7 @@ namespace Gorilla_Mod_Manager
             Margin = new Padding(4);
         }
 
-        public ModCard(SbModData modData, string gorillaTagDirectory) : this()
+        public FullViewModCard(SbModData modData, string gorillaTagDirectory) : this()
         {
             mod = modData;
             gtagDir = gorillaTagDirectory;
@@ -83,6 +83,45 @@ namespace Gorilla_Mod_Manager
 
             if (!string.IsNullOrEmpty(modData.ImageUrl))
                 _ = LoadImageAsync(modData.ImageUrl);
+        }
+
+        protected override void OnSizeChanged(EventArgs e)
+        {
+            base.OnSizeChanged(e);
+
+            if (Width < 550) return;
+
+            double scale = (double)Width / 595.0;
+
+            iconBox.Width = (int)(303 * scale);
+            iconBox.Height = (int)(142 * scale);
+
+            int rightX = (int)(312 * scale);
+            int rightWidth = Width - rightX - 20;
+
+            nameLabel.Location = new Point(rightX, (int)(28 * scale));
+            nameLabel.Size = new Size(rightWidth, (int)(31 * scale));
+            nameLabel.Font = new Font("Poppins", (float)(8 * scale), FontStyle.Bold);
+
+            authorLabel.Location = new Point(rightX, (int)(59 * scale));
+            authorLabel.Size = new Size(rightWidth, (int)(34 * scale));
+            authorLabel.Font = new Font("Segoe UI", (float)(7 * scale));
+
+            descLabel.Location = new Point(rightX, (int)(93 * scale));
+            descLabel.Size = new Size(rightWidth, Height - (int)(93 * scale) - 80);
+            descLabel.Font = new Font("Segoe UI", (float)(7 * scale));
+
+            int btnY = Height - 42;
+            downloadButton.Location = new Point(Width - 106, btnY);
+            ViewRepoBtn.Location = new Point(Width - 212, btnY);
+
+            ExitBtn.Location = new Point(Width - 55, 4);
+
+            statusBadge.Location = new Point((int)(315 * scale), 8);
+            upvoteBadge.Location = new Point((int)(401 * scale), 8);
+            pinPicture.Location = new Point((int)(284 * scale), 4);
+
+            Invalidate();
         }
 
         private void StatusBadgePaint(object sender, PaintEventArgs e)
@@ -275,5 +314,16 @@ namespace Gorilla_Mod_Manager
 
         private void downloadButton_Click(object sender, EventArgs e) { }
         private void nameLabel_Click(object sender, EventArgs e) { }
+        private void FullViewModCard_Load(object sender, EventArgs e) { }
+        private void descLabel_Click(object sender, EventArgs e) { }
+        private void authorLabel_Click(object sender, EventArgs e) { }
+        private void statusBadge_Paint(object sender, PaintEventArgs e) { }
+        private void upvoteBadge_Paint(object sender, PaintEventArgs e) { }
+        private void iconBox_Click(object sender, EventArgs e) { }
+        private void pinPicture_Click(object sender, EventArgs e) { }
+
+        private void ExitBtn_Click(object sender, EventArgs e) { }
+
+        private void ViewRepoBtn_Click(object sender, EventArgs e) { }
     }
 }

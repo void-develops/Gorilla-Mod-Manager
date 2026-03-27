@@ -160,7 +160,6 @@
             this.Github.FillColor = System.Drawing.Color.Transparent;
             this.Github.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.Github.ForeColor = System.Drawing.Color.White;
-            this.Github.Image = global::Gorilla_Mod_Manager.Properties.Resources.icons8_github_30;
             this.Github.ImageSize = new System.Drawing.Size(30, 30);
             this.Github.Location = new System.Drawing.Point(216, 220);
             this.Github.Name = "Github";

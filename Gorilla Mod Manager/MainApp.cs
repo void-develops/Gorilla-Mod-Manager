@@ -32,6 +32,7 @@ namespace Gorilla_Mod_Manager
         private string GtagDirectory;
         private FlowLayoutPanel flowPanel;
         private FlowLayoutPanel installedFlowPanel;
+        private FlowLayoutPanel homeFlowPanel;
 
         private Guna.UI2.WinForms.Guna2TextBox settingsPathBox;
         private Panel accentPreviewPanel;
@@ -44,6 +45,8 @@ namespace Gorilla_Mod_Manager
         private Guna.UI2.WinForms.Guna2TextBox _loadoutNameBox;
         private Panel _loadoutEditorPanel;
         private bool _loadoutEditorOpen = false;
+        private Panel _modDetailOverlay;
+        private Panel _overlayOwner;
 
         private class Loadout
         {
@@ -128,8 +131,17 @@ namespace Gorilla_Mod_Manager
 
             ApplyTheme(_currentTheme);
             ApplyAccent(_accentColor);
+
+            var tabTip = new ToolTip { AutoPopDelay = 3000, InitialDelay = 400, ReshowDelay = 200, ShowAlways = true };
+            tabTip.SetToolTip(BrowseTabBtn, "Browse Mods");
+            tabTip.SetToolTip(InstalledTabBtn, "Library");
+            tabTip.SetToolTip(SettingsTabBtn, "Settings");
+            tabTip.SetToolTip(LaunchGameBtn, "Launch Game");
+            if (HomeTabBtn != null) tabTip.SetToolTip(HomeTabBtn, "Home");
+
             InitializeModView();
             InitializeInstalledView();
+            InitializeHomeView();
             SetActiveTab("browse");
             _ = LoadModsFromApi();
         }
@@ -206,16 +218,32 @@ namespace Gorilla_Mod_Manager
             ModView.BackColor = theme.PanelBack;
             InstalledView.BackColor = theme.PanelBack;
             SettingsView.BackColor = theme.PanelBack;
+            if (HomeView != null) HomeView.BackColor = theme.PanelBack;
             if (flowPanel != null) flowPanel.BackColor = theme.FlowBack;
             if (installedFlowPanel != null) installedFlowPanel.BackColor = theme.PanelBack;
+            if (homeFlowPanel != null) homeFlowPanel.BackColor = theme.FlowBack;
             gorillamodmanager.ForeColor = theme.LabelFore;
             undertext.ForeColor = theme.LabelFore;
             FilePath.FillColor = theme.InputFill; FilePath.BorderColor = theme.InputBorder; FilePath.ForeColor = theme.LabelFore;
             SearchBox.FillColor = theme.InputFill; SearchBox.BorderColor = theme.InputBorder; SearchBox.ForeColor = theme.LabelFore;
             FilterDropdown.FillColor = theme.InputFill; FilterDropdown.BorderColor = theme.InputBorder; FilterDropdown.BackColor = theme.InputFill; FilterDropdown.ForeColor = theme.LabelFore;
             opengamepath.FillColor = theme.InputFill; opengamepath.ForeColor = theme.LabelFore;
+            opengamepath.HoverState.FillColor = theme.PanelBack; opengamepath.HoverState.BorderColor = theme.InputBorder;
+            DashboardBtn.FillColor = theme.InputFill; DashboardBtn.ForeColor = theme.LabelFore;
             guna2Separator1.FillColor = theme.InputBorder;
-            BrowseTabBtn.ForeColor = theme.LabelFore; InstalledTabBtn.ForeColor = theme.LabelFore; SettingsTabBtn.ForeColor = theme.LabelFore;
+
+            foreach (var btn in new[] { BrowseTabBtn, InstalledTabBtn, SettingsTabBtn })
+            {
+                btn.ForeColor = theme.LabelFore;
+                btn.BorderColor = theme.InputBorder;
+                btn.HoverState.BorderColor = theme.InputBorder;
+            }
+            if (HomeTabBtn != null)
+            {
+                HomeTabBtn.ForeColor = theme.LabelFore;
+                HomeTabBtn.BorderColor = theme.InputBorder;
+                HomeTabBtn.HoverState.BorderColor = theme.InputBorder;
+            }
             LaunchGameBtn.ForeColor = Color.White;
             if (settingsPathBox != null) { settingsPathBox.FillColor = theme.InputFill; settingsPathBox.BorderColor = theme.InputBorder; settingsPathBox.ForeColor = theme.LabelFore; }
             foreach (Control c in SettingsView.Controls) ApplyThemeToControl(c, theme);
@@ -230,11 +258,20 @@ namespace Gorilla_Mod_Manager
         private void ApplyAccent(Color accent)
         {
             _accentColor = accent;
-            if (accentPreviewPanel != null) accentPreviewPanel.BackColor = accent;
+            if (accentPreviewPanel != null) { accentPreviewPanel.BackColor = accent; accentPreviewPanel.Invalidate(); }
 
-            BrowseTabBtn.HoverState.FillColor = accent;
-            InstalledTabBtn.HoverState.FillColor = accent;
-            SettingsTabBtn.HoverState.FillColor = accent;
+            foreach (var btn in new[] { BrowseTabBtn, InstalledTabBtn, SettingsTabBtn })
+            {
+                btn.HoverState.FillColor = accent;
+                btn.HoverState.BorderColor = _currentTheme.InputBorder;
+            }
+            if (HomeTabBtn != null)
+            {
+                HomeTabBtn.HoverState.FillColor = accent;
+                HomeTabBtn.HoverState.BorderColor = _currentTheme.InputBorder;
+            }
+            DashboardBtn.HoverState.FillColor = accent;
+            DashboardBtn.HoverState.BorderColor = accent;
 
             FilePath.FocusedState.BorderColor = accent;
             FilePath.HoverState.BorderColor = accent;
@@ -254,17 +291,24 @@ namespace Gorilla_Mod_Manager
                 _loadoutNameBox.HoverState.BorderColor = accent;
             }
 
-            SetActiveTab(ModView.Visible ? "browse" : InstalledView.Visible ? "installed" : "settings");
+            SetActiveTab(ModView.Visible ? "browse" : InstalledView.Visible ? "installed" : SettingsView.Visible ? "settings" : "home");
         }
 
         private void SetActiveTab(string tab)
         {
+            CloseModDetail();
             ModView.Visible = tab == "browse";
             InstalledView.Visible = tab == "installed";
             SettingsView.Visible = tab == "settings";
+            if (HomeView != null) HomeView.Visible = tab == "home";
             BrowseTabBtn.FillColor = tab == "browse" ? _accentColor : _currentTheme.ButtonInactive;
             InstalledTabBtn.FillColor = tab == "installed" ? _accentColor : _currentTheme.ButtonInactive;
             SettingsTabBtn.FillColor = tab == "settings" ? _accentColor : _currentTheme.ButtonInactive;
+            if (HomeTabBtn != null) HomeTabBtn.FillColor = tab == "home" ? _accentColor : _currentTheme.ButtonInactive;
+            BrowseTabBtn.BorderColor = _currentTheme.InputBorder;
+            InstalledTabBtn.BorderColor = _currentTheme.InputBorder;
+            SettingsTabBtn.BorderColor = _currentTheme.InputBorder;
+            if (HomeTabBtn != null) HomeTabBtn.BorderColor = _currentTheme.InputBorder;
             SearchBox.Visible = tab == "browse";
             FilterDropdown.Visible = tab == "browse";
         }
@@ -282,6 +326,242 @@ namespace Gorilla_Mod_Manager
                 Margin = new Padding(0)
             };
             ModView.Controls.Add(flowPanel);
+        }
+
+        private void InitializeHomeView()
+        {
+            if (HomeView == null) return;
+            HomeView.Controls.Clear();
+
+            var titlePanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 64,
+                BackColor = _currentTheme.PanelBack
+            };
+
+            titlePanel.Paint += (s, e) =>
+            {
+                using (var pen = new Pen(_currentTheme.InputBorder, 1f))
+                    e.Graphics.DrawLine(pen, 0, titlePanel.Height - 1, titlePanel.Width, titlePanel.Height - 1);
+            };
+
+            var titleRow = new Panel
+            {
+                Location = new Point(0, 10),
+                Height = 26,
+                Dock = DockStyle.None,
+                BackColor = Color.Transparent
+            };
+            titlePanel.Controls.Add(titleRow);
+            titlePanel.Resize += (s, e) => titleRow.Width = titlePanel.Width;
+            titleRow.Width = titlePanel.Width > 0 ? titlePanel.Width : 800;
+
+            var starLabel = new Label
+            {
+                Text = "✦",
+                ForeColor = _accentColor,
+                Font = new Font("Segoe UI", 13F, FontStyle.Bold),
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+            };
+            titleRow.Controls.Add(starLabel);
+            starLabel.Location = new Point((titleRow.Width / 2) - 100, 2);
+            titlePanel.Resize += (s, e) => starLabel.Location = new Point((titlePanel.Width / 2) - 100, 2);
+
+            var titleLabel = new Label
+            {
+                Text = "Featured Mods",
+                ForeColor = _currentTheme.LabelFore,
+                Font = new Font("Poppins", 12F, FontStyle.Bold),
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+            };
+            titleRow.Controls.Add(titleLabel);
+            titleLabel.Location = new Point((titleRow.Width / 2) - 76, 1);
+            titlePanel.Resize += (s, e) => titleLabel.Location = new Point((titlePanel.Width / 2) - 76, 1);
+
+            var subLabel = new Label
+            {
+                Text = "hand-picked by the community",
+                ForeColor = _currentTheme.SubLabelFore,
+                Font = new Font("Poppins", 7.5F),
+                Dock = DockStyle.None,
+                AutoSize = true,
+                BackColor = Color.Transparent,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+            };
+            titlePanel.Controls.Add(subLabel);
+            subLabel.Location = new Point((titlePanel.Width - subLabel.PreferredWidth) / 2, 40);
+            titlePanel.Resize += (s, e) =>
+            {
+                subLabel.Location = new Point((titlePanel.Width - subLabel.PreferredWidth) / 2, 40);
+            };
+
+            homeFlowPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                WrapContents = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = _currentTheme.FlowBack,
+                Padding = new Padding(8),
+                Margin = new Padding(0)
+            };
+            homeFlowPanel.HorizontalScroll.Visible = false;
+
+            HomeView.Controls.Add(homeFlowPanel);
+            HomeView.Controls.Add(titlePanel);
+
+            PopulateHomeView();
+        }
+
+        private void PopulateHomeView()
+        {
+            if (homeFlowPanel == null) return;
+            homeFlowPanel.SuspendLayout();
+            homeFlowPanel.Controls.Clear();
+
+            var featured = allMods?.Where(m => m.IsFeatured).OrderByDescending(m => m.Upvotes).ToList();
+
+            if (featured == null || !featured.Any())
+            {
+                homeFlowPanel.Controls.Add(new Label
+                {
+                    Text = allMods == null || allMods.Count == 0 ? "Loading..." : "No featured mods right now.",
+                    ForeColor = Color.FromArgb(120, 100, 160),
+                    Font = new Font("Poppins", 10F),
+                    AutoSize = true,
+                    Margin = new Padding(14)
+                });
+                homeFlowPanel.ResumeLayout();
+                return;
+            }
+
+            foreach (var mod in featured)
+            {
+                var card = new ModCard(mod, GtagDirectory);
+                var capturedMod = mod;
+                WireCardClick(card, () => ShowModDetail(capturedMod));
+                homeFlowPanel.Controls.Add(card);
+            }
+
+            homeFlowPanel.ResumeLayout();
+        }
+
+        private static void WireCardClick(Control root, Action handler)
+        {
+            root.Click += (s, e) => handler();
+            root.Cursor = Cursors.Hand;
+            foreach (Control child in root.Controls)
+            {
+                if (child is Guna.UI2.WinForms.Guna2Button) continue;
+                WireCardClick(child, handler);
+            }
+        }
+
+        private void ShowModDetail(SbModData mod)
+        {
+            CloseModDetail();
+
+            Panel targetPanel = (HomeView != null && HomeView.Visible && homeFlowPanel != null)
+                ? homeFlowPanel
+                : flowPanel;
+
+            _overlayOwner = targetPanel;
+
+            _modDetailOverlay = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = targetPanel.ClientSize,
+                BackColor = Color.FromArgb(210, 10, 10, 16)
+            };
+
+            targetPanel.Resize += SyncOverlaySize;
+
+            var fvCard = new FullViewModCard(mod, GtagDirectory);
+
+            fvCard.downloadButton.FillColor = _accentColor;
+            fvCard.downloadButton.HoverState.FillColor = ControlPaint.Light(_accentColor, 0.2f);
+
+            fvCard.ViewRepoBtn.FillColor = _currentTheme.ButtonInactive;
+            fvCard.ViewRepoBtn.ForeColor = _currentTheme.LabelFore;
+            fvCard.ViewRepoBtn.HoverState.FillColor = _accentColor;
+
+            fvCard.ViewRepoBtn.Click += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(mod.RepoUrl))
+                    Process.Start(new ProcessStartInfo { FileName = mod.RepoUrl, UseShellExecute = true });
+            };
+
+            fvCard.ExitBtn.Click += (s, e) => CloseModDetail();
+
+            void CentreAndScaleCard()
+            {
+                if (fvCard.IsDisposed || _modDetailOverlay == null) return;
+
+                bool isFullscreen = this.WindowState == FormWindowState.Maximized;
+
+                int targetWidth, targetHeight;
+
+                if (isFullscreen)
+                {
+                    targetWidth = Math.Max(620, Math.Min(820, _modDetailOverlay.Width - 160));
+                    targetHeight = (int)(targetWidth * 0.52);
+                }
+                else
+                {
+                    targetWidth = 595;
+                    targetHeight = 305;
+                }
+
+                targetWidth = Math.Min(targetWidth, _modDetailOverlay.Width - 100);
+                targetHeight = Math.Min(targetHeight, _modDetailOverlay.Height - 100);
+
+                fvCard.Size = new Size(targetWidth, targetHeight);
+
+                fvCard.Location = new Point(
+                    (_modDetailOverlay.Width - fvCard.Width) / 2,
+                    (_modDetailOverlay.Height - fvCard.Height) / 2);
+            }
+
+            CentreAndScaleCard();
+
+            _modDetailOverlay.Resize += (s, e) => CentreAndScaleCard();
+
+            if (targetPanel is FlowLayoutPanel flp)
+                flp.AutoScroll = false;
+
+            _modDetailOverlay.Click += (s, e) => CloseModDetail();
+            _modDetailOverlay.Controls.Add(fvCard);
+            targetPanel.Controls.Add(_modDetailOverlay);
+            _modDetailOverlay.BringToFront();
+        }
+
+        private void SyncOverlaySize(object sender, EventArgs e)
+        {
+            if (_modDetailOverlay == null || _modDetailOverlay.IsDisposed) return;
+            if (sender is Panel p) _modDetailOverlay.Size = p.ClientSize;
+        }
+
+        private void CloseModDetail()
+        {
+            if (_modDetailOverlay == null || _modDetailOverlay.IsDisposed) return;
+
+            if (_overlayOwner is FlowLayoutPanel flp)
+                flp.AutoScroll = true;
+
+            if (_overlayOwner != null && !_overlayOwner.IsDisposed)
+            {
+                _overlayOwner.Resize -= SyncOverlaySize;
+                _overlayOwner.Controls.Remove(_modDetailOverlay);
+            }
+
+            _modDetailOverlay.Dispose();
+            _modDetailOverlay = null;
+            _overlayOwner = null;
         }
 
         private void InitializeInstalledView()
@@ -325,14 +605,25 @@ namespace Gorilla_Mod_Manager
                 _loadoutBtns[i] = btn;
             }
 
+            var colHeader = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 26,
+                BackColor = Color.FromArgb(18, 18, 18)
+            };
+            colHeader.Controls.Add(new Label { Text = "MOD", ForeColor = Color.FromArgb(90, 90, 90), Font = new Font("Poppins", 7F, FontStyle.Bold), Location = new Point(80, 5), AutoSize = true, BackColor = Color.Transparent });
+            colHeader.Controls.Add(new Label { Text = "FILE", ForeColor = Color.FromArgb(90, 90, 90), Font = new Font("Poppins", 7F, FontStyle.Bold), Location = new Point(340, 5), AutoSize = true, BackColor = Color.Transparent });
+            colHeader.Controls.Add(new Label { Text = "SIZE", ForeColor = Color.FromArgb(90, 90, 90), Font = new Font("Poppins", 7F, FontStyle.Bold), Location = new Point(520, 5), AutoSize = true, BackColor = Color.Transparent });
+            colHeader.Controls.Add(new Label { Text = "ACTIONS", ForeColor = Color.FromArgb(90, 90, 90), Font = new Font("Poppins", 7F, FontStyle.Bold), Location = new Point(600, 5), AutoSize = true, BackColor = Color.Transparent });
+
             installedFlowPanel = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
-                WrapContents = true,
-                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                FlowDirection = FlowDirection.TopDown,
                 BackColor = _currentTheme.PanelBack,
-                Padding = new Padding(4),
+                Padding = new Padding(6, 4, 6, 4),
                 Margin = new Padding(0)
             };
 
@@ -345,6 +636,7 @@ namespace Gorilla_Mod_Manager
 
             InstalledView.Controls.Add(_loadoutEditorPanel);
             InstalledView.Controls.Add(installedFlowPanel);
+            InstalledView.Controls.Add(colHeader);
             InstalledView.Controls.Add(header);
         }
 
@@ -436,10 +728,10 @@ namespace Gorilla_Mod_Manager
             {
                 Dock = DockStyle.Fill,
                 AutoScroll = true,
-                WrapContents = true,
-                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                FlowDirection = FlowDirection.TopDown,
                 BackColor = _currentTheme.PanelBack,
-                Padding = new Padding(4)
+                Padding = new Padding(6, 4, 6, 4)
             };
 
             if (!string.IsNullOrEmpty(GtagDirectory) && Directory.Exists(GtagDirectory))
@@ -456,18 +748,10 @@ namespace Gorilla_Mod_Manager
                             : new string[0])
                         .ToArray();
 
-                    foreach (var dll in allDlls)
-                    {
-                        bool isDisabled = dll.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase);
-                        string fileName = isDisabled
-                            ? Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(dll)) + ".dll"
-                            : Path.GetFileName(dll);
-                        bool included = loadout.EnabledMods.Contains(fileName);
-
-                        modFlow.Controls.Add(BuildLoadoutModCard(fileName, included, loadoutIndex));
-                    }
-
-                    if (!allDlls.Any())
+                    if (allDlls.Any())
+                        foreach (var dll in allDlls)
+                            modFlow.Controls.Add(BuildLoadoutModRow(dll, loadoutIndex, loadout));
+                    else
                         modFlow.Controls.Add(new Label { Text = "No mods installed.", ForeColor = Color.FromArgb(120, 100, 160), Font = new Font("Poppins", 10F), AutoSize = true, Margin = new Padding(14) });
                 }
                 else
@@ -484,41 +768,113 @@ namespace Gorilla_Mod_Manager
             _loadoutEditorPanel.Controls.Add(editorHeader);
         }
 
-        private Panel BuildLoadoutModCard(string fileName, bool included, int loadoutIndex)
+        private Panel BuildLoadoutModRow(string filePath, int loadoutIndex, Loadout loadout)
         {
+            bool isDisabled = filePath.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase);
+            string fileName = isDisabled
+                ? Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(filePath)) + ".dll"
+                : Path.GetFileName(filePath);
             string modName = Path.GetFileNameWithoutExtension(fileName);
-            Color cardBg = _currentTheme.CardBack;
-            Color borderFg = Color.FromArgb(55, 55, 55);
+            bool included = loadout.EnabledMods.Contains(fileName);
 
-            var card = new Panel { Size = new Size(178, 90), BackColor = cardBg, Margin = new Padding(4) };
+            long fileSize = new FileInfo(filePath).Length;
+            string sizeText = fileSize >= 1024 * 1024
+                ? $"{fileSize / (1024f * 1024f):0.00} MB"
+                : $"{fileSize / 1024f:0.0} KB";
 
-            card.Controls.Add(new Label
+            Color rowBg = included ? _currentTheme.CardBack : Color.FromArgb(20, 20, 20);
+            Color nameFg = included ? _currentTheme.LabelFore : Color.FromArgb(70, 70, 70);
+            Color borderCol = included ? Color.FromArgb(52, 52, 52) : Color.FromArgb(35, 35, 35);
+
+            var row = new Panel
+            {
+                Height = 54,
+                Width = 740,
+                BackColor = rowBg,
+                Margin = new Padding(0, 0, 0, 2)
+            };
+
+            _loadoutEditorPanel.Resize += (s, e) =>
+            {
+                if (!row.IsDisposed)
+                    row.Width = _loadoutEditorPanel.ClientSize.Width - 20;
+            };
+
+            var thumb = new Panel
+            {
+                Location = new Point(10, 5),
+                Size = new Size(44, 44),
+                BackColor = Color.Transparent
+            };
+            thumb.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, 43, 43), 6))
+                using (var bg = new SolidBrush(included ? Color.FromArgb(55, 35, 100) : Color.FromArgb(28, 28, 28)))
+                    e.Graphics.FillPath(bg, path);
+                string letter = modName.Length > 0 ? modName[0].ToString().ToUpper() : "?";
+                using (var font = new Font("Poppins", 15F, FontStyle.Bold))
+                using (var brush = new SolidBrush(included ? Color.FromArgb(180, 150, 255) : Color.FromArgb(55, 55, 55)))
+                using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                    e.Graphics.DrawString(letter, font, brush, new RectangleF(0, 0, 44, 44), fmt);
+            };
+
+            var matchedMod = allMods?.FirstOrDefault(m =>
+                string.Equals(m.DllName, fileName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.Name, modName, StringComparison.OrdinalIgnoreCase));
+            if (matchedMod != null && !string.IsNullOrEmpty(matchedMod.ImageUrl))
+            {
+                var pic = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent };
+                thumb.Controls.Add(pic);
+                _ = LoadThumbAsync(pic, matchedMod.ImageUrl);
+            }
+            row.Controls.Add(thumb);
+
+            row.Controls.Add(new Label
             {
                 Text = modName,
-                ForeColor = _currentTheme.LabelFore,
-                Font = new Font("Poppins", 8F, FontStyle.Bold),
-                Location = new Point(6, 10),
-                Size = new Size(166, 18),
-                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = nameFg,
+                Font = new Font("Poppins", 9F, FontStyle.Bold),
+                Location = new Point(62, 8),
+                Size = new Size(250, 20),
                 AutoEllipsis = true,
                 BackColor = Color.Transparent
             });
+            row.Controls.Add(new Label
+            {
+                Text = fileName,
+                ForeColor = Color.FromArgb(70, 70, 80),
+                Font = new Font("Consolas", 7.5F),
+                Location = new Point(62, 30),
+                Size = new Size(250, 16),
+                AutoEllipsis = true,
+                BackColor = Color.Transparent
+            });
+            row.Controls.Add(new Label
+            {
+                Text = sizeText,
+                ForeColor = Color.FromArgb(70, 70, 80),
+                Font = new Font("Poppins", 7.5F),
+                Location = new Point(320, 19),
+                Size = new Size(90, 16),
+                BackColor = Color.Transparent
+            });
+
+            bool capturedIncluded = included;
+            string capturedFileName = fileName;
 
             var includeBtn = new Guna.UI2.WinForms.Guna2Button
             {
                 Text = included ? "✓ Included" : "Include",
                 FillColor = included ? _accentColor : _currentTheme.ButtonInactive,
                 ForeColor = Color.White,
-                Font = new Font("Poppins", 8F, FontStyle.Bold),
+                Font = new Font("Poppins", 7.5F, FontStyle.Bold),
                 BorderRadius = 4,
-                Size = new Size(166, 28),
-                Location = new Point(6, 50),
+                Size = new Size(100, 28),
+                Location = new Point(620, 13),
                 Animated = true
             };
-            includeBtn.HoverState.FillColor = included ? ControlPaint.Light(_accentColor, 0.2f) : _accentColor;
-
-            string capturedFileName = fileName;
-            bool capturedIncluded = included;
+            includeBtn.HoverState.FillColor = capturedIncluded ? ControlPaint.Light(_accentColor, 0.2f) : _accentColor;
 
             includeBtn.Click += (s, e) =>
             {
@@ -529,6 +885,7 @@ namespace Gorilla_Mod_Manager
                     includeBtn.Text = "✓ Included";
                     includeBtn.FillColor = _accentColor;
                     includeBtn.HoverState.FillColor = ControlPaint.Light(_accentColor, 0.2f);
+                    row.BackColor = _currentTheme.CardBack;
                 }
                 else
                 {
@@ -536,21 +893,22 @@ namespace Gorilla_Mod_Manager
                     includeBtn.Text = "Include";
                     includeBtn.FillColor = _currentTheme.ButtonInactive;
                     includeBtn.HoverState.FillColor = _accentColor;
+                    row.BackColor = Color.FromArgb(20, 20, 20);
                 }
                 SaveConfig();
             };
+            row.Controls.Add(includeBtn);
 
-            card.Controls.Add(includeBtn);
-
-            Color capturedBorder = borderFg;
-            card.Paint += (s, e) =>
+            Color capturedBorder = borderCol;
+            row.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, row.Width - 1, row.Height - 1), 7))
                 using (var pen = new Pen(capturedBorder, 1f))
-                    e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
+                    e.Graphics.DrawPath(pen, path);
             };
 
-            return card;
+            return row;
         }
 
         private void RefreshLoadoutButtons()
@@ -642,108 +1000,322 @@ namespace Gorilla_Mod_Manager
                 return;
             }
 
-            foreach (var dll in enabledDlls) installedFlowPanel.Controls.Add(BuildInstalledCard(dll, false));
-            foreach (var dll in disabledDlls) installedFlowPanel.Controls.Add(BuildInstalledCard(dll, true));
+            var checkedRows = new List<(string path, bool disabled, Panel chk)>();
+
+            installedFlowPanel.SuspendLayout();
+            foreach (var dll in enabledDlls) installedFlowPanel.Controls.Add(BuildInstalledRow(dll, false, checkedRows));
+            foreach (var dll in disabledDlls) installedFlowPanel.Controls.Add(BuildInstalledRow(dll, true, checkedRows));
+            installedFlowPanel.ResumeLayout();
         }
 
-        private Panel BuildInstalledCard(string filePath, bool isDisabled)
+        private Panel BuildInstalledRow(string filePath, bool isDisabled, List<(string path, bool disabled, Panel chk)> checkedRows)
         {
             string modName = isDisabled
                 ? Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(filePath))
                 : Path.GetFileNameWithoutExtension(filePath);
+            string fileName = isDisabled ? modName + ".dll" : Path.GetFileName(filePath);
 
             long fileSize = new FileInfo(filePath).Length;
             string sizeText = fileSize >= 1024 * 1024
-                ? $"{fileSize / (1024f * 1024f):0.0} MB"
+                ? $"{fileSize / (1024f * 1024f):0.00} MB"
                 : $"{fileSize / 1024f:0.0} KB";
 
-            Color cardBg = isDisabled ? Color.FromArgb(22, 22, 22) : _currentTheme.CardBack;
-            Color nameFg = isDisabled ? Color.FromArgb(80, 80, 80) : _currentTheme.LabelFore;
-            Color borderFg = isDisabled ? Color.FromArgb(40, 40, 40) : Color.FromArgb(55, 55, 55);
+            Color rowBg = isDisabled ? Color.FromArgb(20, 20, 20) : _currentTheme.CardBack;
+            Color nameFg = isDisabled ? Color.FromArgb(70, 70, 70) : _currentTheme.LabelFore;
+            Color subFg = isDisabled ? Color.FromArgb(55, 55, 55) : _currentTheme.SubLabelFore;
+            Color borderCol = isDisabled ? Color.FromArgb(35, 35, 35) : Color.FromArgb(52, 52, 52);
 
-            var card = new Panel { Size = new Size(178, 110), BackColor = cardBg, Margin = new Padding(4) };
+            var row = new Panel
+            {
+                Height = 58,
+                Width = installedFlowPanel.ClientSize.Width > 14 ? installedFlowPanel.ClientSize.Width - 14 : 740,
+                BackColor = rowBg,
+                Margin = new Padding(0, 0, 0, 2)
+            };
 
-            card.Controls.Add(new Label { Text = modName, ForeColor = nameFg, Font = new Font("Poppins", 8F, FontStyle.Bold), Location = new Point(6, 10), Size = new Size(166, 18), TextAlign = ContentAlignment.MiddleCenter, AutoEllipsis = true, BackColor = Color.Transparent });
-            card.Controls.Add(new Label { Text = isDisabled ? sizeText + " · disabled" : sizeText, ForeColor = isDisabled ? Color.FromArgb(70, 70, 70) : _currentTheme.SubLabelFore, Font = new Font("Poppins", 7F), Location = new Point(6, 30), Size = new Size(166, 14), TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent });
+            bool chkChecked = false;
+            var chk = new Panel
+            {
+                Location = new Point(8, 19),
+                Size = new Size(18, 18),
+                BackColor = Color.Transparent,
+                Cursor = Cursors.Hand
+            };
+            chk.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, 17, 17), 4))
+                {
+                    using (var bg = new SolidBrush(chkChecked ? _accentColor : _currentTheme.InputFill))
+                        e.Graphics.FillPath(bg, path);
+                    using (var pen = new Pen(chkChecked ? _accentColor : Color.FromArgb(75, 75, 85), 1.5f))
+                        e.Graphics.DrawPath(pen, path);
+                }
+                if (chkChecked)
+                {
+                    using (var pen = new Pen(Color.White, 2f) { LineJoin = LineJoin.Round })
+                        e.Graphics.DrawLines(pen, new[] { new PointF(3.5f, 9f), new PointF(7f, 13f), new PointF(14f, 4.5f) });
+                }
+            };
+            chk.Click += (s, e) => { chkChecked = !chkChecked; chk.Tag = chkChecked; chk.Invalidate(); };
+            row.Controls.Add(chk);
+
+            checkedRows.Add((filePath, isDisabled, chk));
+
+            var thumb = new Panel
+            {
+                Location = new Point(32, 7),
+                Size = new Size(44, 44),
+                BackColor = Color.Transparent
+            };
+
+            var matchedMod = allMods?.FirstOrDefault(m =>
+                string.Equals(m.DllName, fileName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(m.Name, modName, StringComparison.OrdinalIgnoreCase));
+
+            thumb.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, 43, 43), 6))
+                using (var bg = new SolidBrush(isDisabled ? Color.FromArgb(28, 28, 28) : Color.FromArgb(55, 35, 100)))
+                    e.Graphics.FillPath(bg, path);
+                string letter = modName.Length > 0 ? modName[0].ToString().ToUpper() : "?";
+                using (var font = new Font("Poppins", 15F, FontStyle.Bold))
+                using (var brush = new SolidBrush(isDisabled ? Color.FromArgb(55, 55, 55) : Color.FromArgb(180, 150, 255)))
+                using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                    e.Graphics.DrawString(letter, font, brush, new RectangleF(0, 0, 44, 44), fmt);
+            };
+
+            if (matchedMod != null && !string.IsNullOrEmpty(matchedMod.ImageUrl))
+            {
+                var pic = new PictureBox { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Transparent };
+                thumb.Controls.Add(pic);
+                _ = LoadThumbAsync(pic, matchedMod.ImageUrl);
+            }
+            row.Controls.Add(thumb);
+
+            row.Controls.Add(new Label
+            {
+                Text = modName,
+                ForeColor = nameFg,
+                Font = new Font("Poppins", 9F, isDisabled ? FontStyle.Bold | FontStyle.Strikeout : FontStyle.Bold),
+                Location = new Point(84, 10),
+                Size = new Size(220, 20),
+                AutoEllipsis = true,
+                BackColor = Color.Transparent
+            });
+
+            if (matchedMod != null && !string.IsNullOrEmpty(matchedMod.Author))
+            {
+                row.Controls.Add(new Label
+                {
+                    Text = "@" + matchedMod.Author,
+                    ForeColor = isDisabled ? Color.FromArgb(45, 45, 45) : Color.FromArgb(100, 100, 120),
+                    Font = new Font("Segoe UI", 7F),
+                    Location = new Point(84, 31),
+                    Size = new Size(220, 15),
+                    AutoEllipsis = true,
+                    BackColor = Color.Transparent
+                });
+            }
+
+            row.Controls.Add(new Label
+            {
+                Text = fileName,
+                ForeColor = subFg,
+                Font = new Font("Consolas", 7.5F),
+                Location = new Point(318, 10),
+                Size = new Size(190, 18),
+                AutoEllipsis = true,
+                BackColor = Color.Transparent
+            });
+            row.Controls.Add(new Label
+            {
+                Text = sizeText,
+                ForeColor = subFg,
+                Font = new Font("Poppins", 7.5F),
+                Location = new Point(318, 30),
+                Size = new Size(100, 16),
+                BackColor = Color.Transparent
+            });
+
+            var pill = new Panel
+            {
+                Location = new Point(row.Width - 264, 19),
+                Size = new Size(80, 20),
+                BackColor = Color.Transparent
+            };
+            string pillText = isDisabled ? "Disabled" : "Enabled";
+            Color pillFg = isDisabled ? Color.FromArgb(90, 90, 90) : Color.FromArgb(80, 200, 120);
+            Color pillBg = isDisabled ? Color.FromArgb(28, 28, 28) : Color.FromArgb(20, 60, 35);
+            pill.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, pill.Width - 1, pill.Height - 1), 9))
+                {
+                    using (var bg = new SolidBrush(pillBg)) e.Graphics.FillPath(bg, path);
+                    using (var pen = new Pen(pillFg, 1f)) e.Graphics.DrawPath(pen, path);
+                }
+                using (var brush = new SolidBrush(pillFg))
+                using (var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                    e.Graphics.DrawString(pillText, new Font("Poppins", 6.5F, FontStyle.Bold), brush, new RectangleF(0, 0, pill.Width, pill.Height), fmt);
+            };
+            row.Controls.Add(pill);
 
             var toggleBtn = new Guna.UI2.WinForms.Guna2Button
             {
                 Text = isDisabled ? "Enable" : "Disable",
-                FillColor = isDisabled ? Color.FromArgb(50, 50, 50) : Color.FromArgb(80, 40, 0),
-                ForeColor = isDisabled ? Color.FromArgb(160, 160, 160) : Color.FromArgb(255, 140, 40),
-                Font = new Font("Poppins SemiBold", 7.5F, FontStyle.Bold),
+                FillColor = isDisabled ? Color.FromArgb(38, 38, 38) : Color.FromArgb(60, 30, 0),
+                ForeColor = isDisabled ? Color.FromArgb(150, 150, 150) : Color.FromArgb(255, 140, 40),
+                Font = new Font("Poppins", 7.5F, FontStyle.Bold),
                 BorderRadius = 4,
-                Size = new Size(isDisabled ? 166 : 78, 26),
-                Location = new Point(6, 52),
+                Size = new Size(82, 26),
+                Location = new Point(row.Width - 174, 16),
                 Animated = true
             };
-            toggleBtn.HoverState.FillColor = isDisabled ? Color.FromArgb(70, 70, 70) : Color.FromArgb(110, 55, 0);
+            toggleBtn.HoverState.FillColor = isDisabled ? Color.FromArgb(55, 55, 55) : Color.FromArgb(90, 45, 0);
 
             var uninstallBtn = new Guna.UI2.WinForms.Guna2Button
             {
-                Text = "Uninstall",
-                FillColor = Color.FromArgb(120, 20, 20),
-                ForeColor = Color.White,
-                Font = new Font("Poppins SemiBold", 7.5F, FontStyle.Bold),
+                Text = "Remove",
+                FillColor = Color.FromArgb(70, 18, 18),
+                ForeColor = Color.FromArgb(255, 90, 90),
+                Font = new Font("Poppins", 7.5F, FontStyle.Bold),
                 BorderRadius = 4,
                 Size = new Size(82, 26),
-                Location = new Point(90, 52),
-                Animated = true,
-                Visible = !isDisabled
+                Location = new Point(row.Width - 88, 16),
+                Animated = true
             };
-            uninstallBtn.HoverState.FillColor = Color.FromArgb(180, 30, 30);
+            uninstallBtn.HoverState.FillColor = Color.FromArgb(120, 25, 25);
+
+            installedFlowPanel.Resize += (s, e) =>
+            {
+                if (!row.IsDisposed)
+                {
+                    row.Width = installedFlowPanel.ClientSize.Width - 14;
+                    toggleBtn.Left = row.Width - 174;
+                    uninstallBtn.Left = row.Width - 88;
+                    pill.Left = row.Width - 264;
+                }
+            };
 
             string capturedPath = filePath;
             bool capturedDisabled = isDisabled;
 
             toggleBtn.Click += (s, e) =>
             {
-                try
+                var targets = checkedRows.Where(r => IsChkChecked(r.chk)).ToList();
+                if (targets.Count == 0) targets.Add((capturedPath, capturedDisabled, chk));
+
+                string pluginsRoot = Path.Combine(GtagDirectory, "BepInEx", "plugins");
+                string disabledRoot = Path.Combine(pluginsRoot, "disabled");
+                Directory.CreateDirectory(disabledRoot);
+
+                foreach (var (tPath, tDisabled, _) in targets)
                 {
-                    string pluginsRoot = Path.Combine(GtagDirectory, "BepInEx", "plugins");
-                    string disabledRoot = Path.Combine(pluginsRoot, "disabled");
-                    Directory.CreateDirectory(disabledRoot);
-                    if (capturedDisabled)
+                    try
                     {
-                        string relativePath = capturedPath.Substring(disabledRoot.Length).TrimStart(Path.DirectorySeparatorChar);
-                        string dllName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(relativePath));
-                        string subFolder = Path.GetDirectoryName(relativePath);
-                        string destDir = string.IsNullOrEmpty(subFolder) ? pluginsRoot : Path.Combine(pluginsRoot, subFolder);
-                        Directory.CreateDirectory(destDir);
-                        File.Move(capturedPath, Path.Combine(destDir, dllName + ".dll"));
+                        if (tDisabled)
+                        {
+                            string relativePath = tPath.Substring(disabledRoot.Length).TrimStart(Path.DirectorySeparatorChar);
+                            string dllName = Path.GetFileNameWithoutExtension(Path.GetFileNameWithoutExtension(relativePath));
+                            string subFolder = Path.GetDirectoryName(relativePath);
+                            string destDir = string.IsNullOrEmpty(subFolder) ? pluginsRoot : Path.Combine(pluginsRoot, subFolder);
+                            Directory.CreateDirectory(destDir);
+                            File.Move(tPath, Path.Combine(destDir, dllName + ".dll"));
+                        }
+                        else
+                        {
+                            string relativePath = tPath.Substring(pluginsRoot.Length).TrimStart(Path.DirectorySeparatorChar);
+                            string subFolder = Path.GetDirectoryName(relativePath);
+                            string destDir = string.IsNullOrEmpty(subFolder) ? disabledRoot : Path.Combine(disabledRoot, subFolder);
+                            Directory.CreateDirectory(destDir);
+                            File.Move(tPath, Path.Combine(destDir, Path.GetFileName(tPath) + ".disabled"));
+                        }
                     }
-                    else
-                    {
-                        string relativePath = capturedPath.Substring(pluginsRoot.Length).TrimStart(Path.DirectorySeparatorChar);
-                        string subFolder = Path.GetDirectoryName(relativePath);
-                        string destDir = string.IsNullOrEmpty(subFolder) ? disabledRoot : Path.Combine(disabledRoot, subFolder);
-                        Directory.CreateDirectory(destDir);
-                        File.Move(capturedPath, Path.Combine(destDir, Path.GetFileName(capturedPath) + ".disabled"));
-                    }
-                    LoadInstalledMods();
+                    catch (Exception ex) { MessageBox.Show("Failed to toggle mod: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
                 }
-                catch (Exception ex) { MessageBox.Show("Failed to toggle mod: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                LoadInstalledMods();
             };
 
             uninstallBtn.Click += (s, e) =>
             {
-                if (MessageBox.Show($"Uninstall {modName}?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-                try { File.Delete(capturedPath); LoadInstalledMods(); }
-                catch (Exception ex) { MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                var targets = checkedRows.Where(r => IsChkChecked(r.chk)).ToList();
+                if (targets.Count == 0) targets.Add((capturedPath, capturedDisabled, chk));
+
+                string names = targets.Count == 1
+                    ? Path.GetFileNameWithoutExtension(targets[0].path)
+                    : $"{targets.Count} mods";
+                if (MessageBox.Show($"Uninstall {names}?", "Confirm", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+
+                foreach (var (tPath, _, _x) in targets)
+                {
+                    try { File.Delete(tPath); }
+                    catch (Exception ex) { MessageBox.Show("Failed: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                }
+                LoadInstalledMods();
             };
 
-            card.Controls.Add(toggleBtn);
-            if (!isDisabled) card.Controls.Add(uninstallBtn);
+            row.Controls.Add(toggleBtn);
+            row.Controls.Add(uninstallBtn);
 
-            Color capturedBorder = borderFg;
-            card.Paint += (s, e) =>
+            Color capturedBorder = borderCol;
+            bool hovering = false;
+            row.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var pen = new Pen(capturedBorder, 1f))
-                    e.Graphics.DrawRectangle(pen, 0, 0, card.Width - 1, card.Height - 1);
+                var rc = new Rectangle(0, 0, row.Width - 1, row.Height - 1);
+                using (var path = RoundedRect(rc, 7))
+                {
+                    if (hovering)
+                        using (var hl = new SolidBrush(Color.FromArgb(12, 255, 255, 255)))
+                            e.Graphics.FillPath(hl, path);
+                    using (var pen = new Pen(capturedBorder, 1f))
+                        e.Graphics.DrawPath(pen, path);
+                }
             };
+            row.MouseEnter += (s, e) => { hovering = true; row.Invalidate(); };
+            row.MouseLeave += (s, e) => { hovering = false; row.Invalidate(); };
 
-            return card;
+            return row;
+        }
+
+        private static bool IsChkChecked(Panel chk)
+        {
+            if (chk == null || chk.IsDisposed) return false;
+            return chk.Tag is bool b && b;
+        }
+
+        private static GraphicsPath RoundedRect(Rectangle r, int radius)
+        {
+            var path = new GraphicsPath();
+            path.AddArc(r.X, r.Y, radius * 2, radius * 2, 180, 90);
+            path.AddArc(r.Right - radius * 2, r.Y, radius * 2, radius * 2, 270, 90);
+            path.AddArc(r.Right - radius * 2, r.Bottom - radius * 2, radius * 2, radius * 2, 0, 90);
+            path.AddArc(r.X, r.Bottom - radius * 2, radius * 2, radius * 2, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
+        private static async Task LoadThumbAsync(PictureBox pic, string url)
+        {
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.Add("User-Agent", "GorillaModManager");
+                    var bytes = await client.GetByteArrayAsync(url);
+                    using (var ms = new MemoryStream(bytes))
+                    {
+                        var img = Image.FromStream(ms);
+                        if (pic.IsHandleCreated)
+                            pic.Invoke((Action)(() => { pic.Image = img; }));
+                        else
+                            pic.Image = img;
+                    }
+                }
+            }
+            catch { }
         }
 
         private void LaunchGameBtn_Click(object sender, EventArgs e)
@@ -804,45 +1376,114 @@ namespace Gorilla_Mod_Manager
         private void InitializeSettingsView()
         {
             SettingsView.Controls.Clear();
-            int rowH = 58, labelX = 24, controlX = 190, ctrlH = 32;
-            int y = 28;
-            var panel = SettingsView;
 
-            Label MakeLabel(string text, int top) => new Label
+            const int padX = 20;
+            const int padY = 16;
+            const int cardGap = 12;
+            const int rowH = 52;
+            const int labelCol = 14;
+            const int controlCol = 160;
+            const int ctrlH = 30;
+            const int headerH = 36;
+
+            var scroll = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                BackColor = Color.Transparent
+            };
+            SettingsView.Controls.Add(scroll);
+
+            int CardWidth() => scroll.ClientSize.Width > padX * 2 + 10 ? scroll.ClientSize.Width - padX * 2 : 680;
+
+            Panel MakeCard(int cardY, int cardH)
+            {
+                var card = new Panel
+                {
+                    Location = new Point(padX, cardY),
+                    Width = CardWidth(),
+                    Height = cardH,
+                    BackColor = _currentTheme.CardBack
+                };
+                scroll.Resize += (s, e) => { if (!card.IsDisposed) card.Width = CardWidth(); };
+                card.Paint += (s, e) =>
+                {
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    using (var path = RoundedRect(new Rectangle(0, 0, card.Width - 1, card.Height - 1), 8))
+                    {
+                        using (var bg = new SolidBrush(_currentTheme.CardBack))
+                            e.Graphics.FillPath(bg, path);
+                        using (var pen = new Pen(_currentTheme.InputBorder, 1f))
+                            e.Graphics.DrawPath(pen, path);
+                    }
+                };
+                return card;
+            }
+
+            void AddCardHeader(Panel card, string title)
+            {
+                card.Controls.Add(new Label
+                {
+                    Text = title,
+                    ForeColor = _accentColor,
+                    Font = new Font("Poppins", 7.5F, FontStyle.Bold),
+                    Location = new Point(labelCol, 10),
+                    AutoSize = true,
+                    BackColor = Color.Transparent
+                });
+                var div = new Panel { Location = new Point(labelCol, 26), Height = 1, BackColor = _currentTheme.InputBorder };
+                card.Controls.Add(div);
+                card.Resize += (s, e) => { if (!div.IsDisposed) div.Width = card.Width - labelCol * 2; };
+                div.Width = card.Width - labelCol * 2;
+            }
+
+            Label MakeLabel(Panel card, string text, int rowTop) => new Label
             {
                 Text = text,
                 ForeColor = _currentTheme.SubLabelFore,
-                Font = new Font("Poppins", 9F),
-                Location = new Point(labelX, top + (ctrlH / 2) - 8),
+                Font = new Font("Poppins", 8.5F),
+                Location = new Point(labelCol, rowTop + (ctrlH / 2) - 8),
                 AutoSize = true,
                 BackColor = Color.Transparent
             };
 
-            panel.Controls.Add(MakeLabel("Game Path", y));
+            int cy = padY;
+
+            int pathCardH = headerH + rowH + 8;
+            var pathCard = MakeCard(cy, pathCardH);
+            scroll.Controls.Add(pathCard);
+            AddCardHeader(pathCard, "GAME PATH");
+
+            int r1 = headerH + 8;
+            pathCard.Controls.Add(MakeLabel(pathCard, "Game Directory", r1));
+
             settingsPathBox = new Guna.UI2.WinForms.Guna2TextBox
             {
-                Location = new Point(controlX, y),
+                Location = new Point(controlCol, r1),
                 Size = new Size(270, ctrlH),
                 FillColor = _currentTheme.InputFill,
                 BorderColor = _currentTheme.InputBorder,
                 ForeColor = _currentTheme.LabelFore,
-                Font = new Font("Poppins", 8.5F),
-                BorderRadius = 4,
+                Font = new Font("Poppins", 8F),
+                BorderRadius = 6,
                 Text = GtagDirectory ?? ""
             };
             settingsPathBox.FocusedState.BorderColor = _accentColor;
+            settingsPathBox.HoverState.BorderColor = _accentColor;
+            pathCard.Controls.Add(settingsPathBox);
 
             var browsePathBtn = new Guna.UI2.WinForms.Guna2Button
             {
-                Text = "...",
-                Location = new Point(controlX + 276, y),
-                Size = new Size(ctrlH, ctrlH),
-                FillColor = _currentTheme.InputFill,
+                Text = "Browse",
+                Location = new Point(controlCol + 276, r1),
+                Size = new Size(70, ctrlH),
+                FillColor = _currentTheme.ButtonInactive,
                 ForeColor = _currentTheme.LabelFore,
-                BorderRadius = 4,
-                Font = new Font("Poppins", 9F, FontStyle.Bold)
+                BorderRadius = 6,
+                Font = new Font("Poppins", 7.5F, FontStyle.Bold),
+                Animated = true
             };
-            browsePathBtn.HoverState.FillColor = _currentTheme.PanelBack;
+            browsePathBtn.HoverState.FillColor = _accentColor;
             browsePathBtn.Click += (s, e) =>
             {
                 using (var dlg = new OpenFileDialog { Title = "Select Gorilla Tag Executable", Filter = "Executable Files (*.exe)|*.exe" })
@@ -855,16 +1496,17 @@ namespace Gorilla_Mod_Manager
                         MessageBox.Show("That isn't Gorilla Tag.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             };
+            pathCard.Controls.Add(browsePathBtn);
 
             var openFolderBtn = new Guna.UI2.WinForms.Guna2Button
             {
-                Text = "Open Folder",
-                Location = new Point(controlX + 276 + ctrlH + 6, y),
-                Size = new Size(100, ctrlH),
-                FillColor = _currentTheme.InputFill,
+                Text = "Open",
+                Location = new Point(controlCol + 276 + 76, r1),
+                Size = new Size(60, ctrlH),
+                FillColor = _currentTheme.ButtonInactive,
                 ForeColor = _currentTheme.LabelFore,
-                BorderRadius = 4,
-                Font = new Font("Poppins", 8F),
+                BorderRadius = 6,
+                Font = new Font("Poppins", 7.5F, FontStyle.Bold),
                 Animated = true
             };
             openFolderBtn.HoverState.FillColor = _accentColor;
@@ -875,36 +1517,47 @@ namespace Gorilla_Mod_Manager
                 { MessageBox.Show("Game folder not set or doesn't exist.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
                 Process.Start(new ProcessStartInfo { FileName = "explorer.exe", Arguments = fp, UseShellExecute = true });
             };
-            panel.Controls.Add(settingsPathBox);
-            panel.Controls.Add(browsePathBtn);
-            panel.Controls.Add(openFolderBtn);
-            y += rowH;
+            pathCard.Controls.Add(openFolderBtn);
 
-            panel.Controls.Add(MakeLabel("Theme", y));
-            themeDropdown = new ComboBox
-            {
-                Location = new Point(controlX, y + 2),
-                Size = new Size(160, ctrlH),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = _currentTheme.InputFill,
-                ForeColor = _currentTheme.LabelFore,
-                Font = new Font("Poppins", 9F)
-            };
-            themeDropdown.Items.AddRange(new object[] { "Dark", "Darker", "Light" });
-            themeDropdown.SelectedItem = _themeName;
-            themeDropdown.SelectedIndexChanged += (s, e) =>
-            {
-                string sel = themeDropdown.SelectedItem?.ToString() ?? "Dark";
-                _themeName = sel;
-                _currentTheme = AppTheme.FromName(sel);
-                ApplyTheme(_currentTheme);
-                ApplyAccent(_accentColor);
-            };
-            panel.Controls.Add(themeDropdown);
-            y += rowH;
+            cy += pathCardH + cardGap;
 
-            panel.Controls.Add(MakeLabel("Accent Color", y));
+            int appearCardH = headerH + rowH + rowH + rowH + 8;
+            var appearCard = MakeCard(cy, appearCardH);
+            scroll.Controls.Add(appearCard);
+            AddCardHeader(appearCard, "APPEARANCE");
+
+            int ra = headerH + 8;
+            appearCard.Controls.Add(MakeLabel(appearCard, "Theme", ra));
+            var themes = new[] { "Dark", "Darker", "Light" };
+            for (int i = 0; i < themes.Length; i++)
+            {
+                string t = themes[i];
+                bool sel = t == _themeName;
+                var tb = new Guna.UI2.WinForms.Guna2Button
+                {
+                    Text = t,
+                    Location = new Point(controlCol + i * 90, ra),
+                    Size = new Size(84, ctrlH),
+                    FillColor = sel ? _accentColor : _currentTheme.ButtonInactive,
+                    ForeColor = Color.White,
+                    BorderRadius = 6,
+                    Font = new Font("Poppins", 8F, FontStyle.Bold),
+                    Animated = true
+                };
+                tb.HoverState.FillColor = sel ? ControlPaint.Light(_accentColor, 0.15f) : _accentColor;
+                tb.Click += (s, e) =>
+                {
+                    _themeName = t;
+                    _currentTheme = AppTheme.FromName(t);
+                    ApplyTheme(_currentTheme);
+                    ApplyAccent(_accentColor);
+                    InitializeSettingsView();
+                };
+                appearCard.Controls.Add(tb);
+            }
+
+            int rb = ra + rowH;
+            appearCard.Controls.Add(MakeLabel(appearCard, "Accent Color", rb));
             var presets = new[]
             {
                 ("Purple", Color.FromArgb(111, 69, 240)),
@@ -914,70 +1567,75 @@ namespace Gorilla_Mod_Manager
                 ("Pink",   Color.FromArgb(220, 80, 160)),
                 ("Orange", Color.FromArgb(230, 120, 30))
             };
-            int px = controlX;
+            int px = 0;
             foreach (var (name, col) in presets)
             {
                 Color cc = col;
+                bool active = Math.Abs(_accentColor.R - col.R) < 5 && Math.Abs(_accentColor.G - col.G) < 5 && Math.Abs(_accentColor.B - col.B) < 5;
                 var pb = new Guna.UI2.WinForms.Guna2Button
                 {
                     Text = name,
-                    Location = new Point(px, y),
-                    Size = new Size(64, ctrlH),
-                    FillColor = col,
+                    Location = new Point(controlCol + px, rb),
+                    Size = new Size(72, ctrlH),
+                    FillColor = active ? ControlPaint.Light(col, 0.2f) : col,
                     ForeColor = Color.White,
-                    BorderRadius = 4,
-                    Font = new Font("Poppins", 7.5F, FontStyle.Bold)
+                    BorderRadius = 6,
+                    Font = new Font("Poppins", 7.5F, FontStyle.Bold),
+                    Animated = true
                 };
                 pb.HoverState.FillColor = ControlPaint.Light(col, 0.2f);
                 pb.Click += (s, e) => ApplyAccent(cc);
-                panel.Controls.Add(pb);
-                px += 70;
+                appearCard.Controls.Add(pb);
+                px += 78;
             }
-            y += rowH;
 
-            panel.Controls.Add(MakeLabel("Custom Color", y));
+            int rc = rb + rowH;
+            appearCard.Controls.Add(MakeLabel(appearCard, "Custom Color", rc));
+
             var customColorBtn = new Guna.UI2.WinForms.Guna2Button
             {
                 Text = "Pick Color...",
-                Location = new Point(controlX, y),
-                Size = new Size(120, ctrlH),
-                FillColor = _currentTheme.InputFill,
+                Location = new Point(controlCol, rc),
+                Size = new Size(110, ctrlH),
+                FillColor = _currentTheme.ButtonInactive,
                 ForeColor = _currentTheme.LabelFore,
-                BorderRadius = 4,
-                Font = new Font("Poppins", 8.5F)
+                BorderRadius = 6,
+                Font = new Font("Poppins", 8F),
+                Animated = true
             };
-            customColorBtn.HoverState.FillColor = _currentTheme.PanelBack;
+            customColorBtn.HoverState.FillColor = _accentColor;
             customColorBtn.Click += (s, e) =>
             {
                 using (var dlg = new ColorDialog { Color = _accentColor, FullOpen = true })
                     if (dlg.ShowDialog() == DialogResult.OK) ApplyAccent(dlg.Color);
             };
+            appearCard.Controls.Add(customColorBtn);
+
             accentPreviewPanel = new Panel
             {
-                Location = new Point(controlX + 126, y + (ctrlH / 2) - 11),
-                Size = new Size(22, 22),
-                BackColor = _accentColor
+                Location = new Point(controlCol + 116, rc + (ctrlH / 2) - 10),
+                Size = new Size(20, 20),
+                BackColor = Color.Transparent
             };
-            panel.Controls.Add(customColorBtn);
-            panel.Controls.Add(accentPreviewPanel);
-            y += rowH;
-
-            panel.Controls.Add(new Panel
+            accentPreviewPanel.Paint += (s, e) =>
             {
-                Location = new Point(labelX, y),
-                Size = new Size(600, 1),
-                BackColor = _currentTheme.InputBorder
-            });
-            y += 20;
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, 19, 19), 5))
+                using (var bg = new SolidBrush(_accentColor))
+                    e.Graphics.FillPath(bg, path);
+            };
+            appearCard.Controls.Add(accentPreviewPanel);
+
+            cy += appearCardH + cardGap;
 
             var saveBtn = new Guna.UI2.WinForms.Guna2Button
             {
                 Text = "Save Settings",
-                Location = new Point(controlX, y),
-                Size = new Size(150, 36),
+                Location = new Point(padX, cy + 4),
+                Size = new Size(160, 36),
                 FillColor = _accentColor,
                 ForeColor = Color.White,
-                BorderRadius = 4,
+                BorderRadius = 8,
                 Font = new Font("Poppins", 9F, FontStyle.Bold),
                 Animated = true
             };
@@ -991,8 +1649,12 @@ namespace Gorilla_Mod_Manager
                 SaveConfig();
                 Task.Delay(1500).ContinueWith(_ => { if (saveBtn.IsHandleCreated) saveBtn.Invoke((Action)(() => saveBtn.FillColor = _accentColor)); });
             };
-            panel.Controls.Add(saveBtn);
+            scroll.Controls.Add(saveBtn);
+
+            themeDropdown = new ComboBox { Visible = false };
+            scroll.Controls.Add(themeDropdown);
         }
+
         private async Task LoadModsFromApi()
         {
             flowPanel.Controls.Clear();
@@ -1030,8 +1692,16 @@ namespace Gorilla_Mod_Manager
             flowPanel.SuspendLayout();
             flowPanel.Controls.Clear();
             if (!sorted.Any()) { flowPanel.Controls.Add(new Label { Text = "No mods found.", ForeColor = Color.FromArgb(120, 100, 160), Font = new Font("Poppins", 10F), AutoSize = true, Margin = new Padding(14) }); flowPanel.ResumeLayout(); return; }
-            foreach (var mod in sorted) flowPanel.Controls.Add(new ModCard(mod, GtagDirectory));
+            foreach (var mod in sorted)
+            {
+                var card = new ModCard(mod, GtagDirectory);
+                var capturedMod = mod;
+                WireCardClick(card, () => ShowModDetail(capturedMod));
+                flowPanel.Controls.Add(card);
+            }
             flowPanel.ResumeLayout();
+
+            PopulateHomeView();
         }
 
         private async void InstallBepinex_Click(object sender, EventArgs e)
@@ -1056,6 +1726,19 @@ namespace Gorilla_Mod_Manager
         private void ModView_Paint(object sender, PaintEventArgs e) { }
         private void InstalledView_Paint(object sender, PaintEventArgs e) { }
         private void SettingsView_Paint(object sender, PaintEventArgs e) { }
+        private void guna2Panel1_Paint(object sender, PaintEventArgs e) { }
+        private void gorillamodmanager_Click(object sender, EventArgs e) { }
+
+        private void FullScreenButton_Click(object sender, EventArgs e)
+        {
+            if (this.WindowState == FormWindowState.Maximized)
+                this.WindowState = FormWindowState.Normal;
+            else
+                this.WindowState = FormWindowState.Maximized;
+        }
+
+        private void HomeView_Paint(object sender, PaintEventArgs e) { }
+        private void HomeTabBtn_Click(object sender, EventArgs e) => SetActiveTab("home");
     }
 
     public class SbModData

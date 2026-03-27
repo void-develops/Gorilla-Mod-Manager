@@ -11,7 +11,7 @@ namespace Gorilla_Mod_Manager
 {
     public partial class Form1 : Form
     {
-        private const string CurrentVersion = "1.0.1";
+        private const string CurrentVersion = "1.0.3";
         private const string GithubApiUrl = "https://api.github.com/repos/void-develops/Gorilla-Mod-Manager/releases/latest";
         private const string ExeName = "Gorilla Mod Manager.exe";
 
@@ -99,7 +99,7 @@ namespace Gorilla_Mod_Manager
                     string json = await client.GetStringAsync(GithubApiUrl);
                     var release = JObject.Parse(json);
 
-                    _latestVersion = (release["tag_name"]?.ToString() ?? "").TrimStart('v');
+                    _latestVersion = (release["v1.0.3"]?.ToString() ?? "").TrimStart('v'); // yo void dont forget to change ts again you dummy head
 
                     var assets = release["assets"] as JArray;
                     if (assets != null)
